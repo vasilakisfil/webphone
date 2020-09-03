@@ -26,8 +26,8 @@ async fn generate_digest_401() {
     let request: SipMessage = requests::request().into();
 
     let (mut udp_sender_tx, mut udp_sender_rx): (
-        Sender<(Vec<u8>, SocketAddr)>,
-        Receiver<(Vec<u8>, SocketAddr)>,
+        Sender<(Bytes, SocketAddr)>,
+        Receiver<(Bytes, SocketAddr)>,
     ) = mpsc::channel(100);
     let processor = ::processor::Processor::new(udp_sender_tx);
     let response = processor
@@ -73,8 +73,8 @@ async fn request_with_auth_succeeds() {
 
     let request: SipMessage = requests::request().into();
     let (mut udp_sender_tx, mut udp_sender_rx): (
-        Sender<(Vec<u8>, SocketAddr)>,
-        Receiver<(Vec<u8>, SocketAddr)>,
+        Sender<(Bytes, SocketAddr)>,
+        Receiver<(Bytes, SocketAddr)>,
     ) = mpsc::channel(100);
     let processor = ::processor::Processor::new(udp_sender_tx);
     let response = processor

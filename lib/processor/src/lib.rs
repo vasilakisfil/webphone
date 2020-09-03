@@ -17,12 +17,12 @@ use tokio::sync::mpsc::Sender;
 //should be generic soon
 //generic is going to be injected during initialization (no initialization atm)
 pub struct Processor {
-    udp_sink: Sender<(Vec<u8>, SocketAddr)>
+    udp_sink: Sender<(Bytes, SocketAddr)>
 }
 
 #[allow(clippy::new_without_default)]
 impl Processor {
-    pub fn new(udp_sink: Sender<(Vec<u8>, SocketAddr)>) -> Self {
+    pub fn new(udp_sink: Sender<(Bytes, SocketAddr)>) -> Self {
         Self { udp_sink }
     }
 
