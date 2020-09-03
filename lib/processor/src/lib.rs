@@ -10,19 +10,20 @@ pub use error::Error;
 use models::{Request, Response, SipMessage};
 use std::convert::TryInto;
 use std::net::SocketAddr;
+use tokio::sync::mpsc::Sender;
 
 //type UdpSink = common::futures::stream::SplitSink<UdpFramed<BytesCodec>, (Bytes, SocketAddr)>;
 
 //should be generic soon
 //generic is going to be injected during initialization (no initialization atm)
 pub struct Processor {
-    //sink: UdpSink
+    udp_sink: Sender<(Vec<u8>, SocketAddr)>
 }
 
 #[allow(clippy::new_without_default)]
 impl Processor {
-    pub fn new(/*sink: UdpSink*/) -> Self {
-        Self {} // { sink }
+    pub fn new(udp_sink: Sender<(Vec<u8>, SocketAddr)>) -> Self {
+        Self { udp_sink }
     }
 
     pub async fn process_message(&self, bytes: Bytes) -> Result<Bytes, Error> {

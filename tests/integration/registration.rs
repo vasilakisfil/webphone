@@ -3,6 +3,8 @@ use ::common::bytes::Bytes;
 use models::{Request, Response, SipMessage};
 use sip_helpers::auth::*;
 use std::convert::TryInto;
+use std::net::SocketAddr;
+use tokio::sync::mpsc::{self, channel, Sender, Receiver};
 
 mod sip {
     pub use ::common::libsip::*;
@@ -22,7 +24,12 @@ async fn generate_digest_401() {
     crate::common::setup();
 
     let request: SipMessage = requests::request().into();
-    let processor = ::processor::Processor::new();
+
+    let (mut udp_sender_tx, mut udp_sender_rx): (
+        Sender<(Vec<u8>, SocketAddr)>,
+        Receiver<(Vec<u8>, SocketAddr)>,
+    ) = mpsc::channel(100);
+    let processor = ::processor::Processor::new(udp_sender_tx);
     let response = processor
         .process_message(request.into())
         .await
@@ -65,7 +72,11 @@ async fn request_with_auth_succeeds() {
     };
 
     let request: SipMessage = requests::request().into();
-    let processor = ::processor::Processor::new();
+    let (mut udp_sender_tx, mut udp_sender_rx): (
+        Sender<(Vec<u8>, SocketAddr)>,
+        Receiver<(Vec<u8>, SocketAddr)>,
+    ) = mpsc::channel(100);
+    let processor = ::processor::Processor::new(udp_sender_tx);
     let response = processor
         .process_message(request.into())
         .await
