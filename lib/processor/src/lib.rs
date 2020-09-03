@@ -3,21 +3,26 @@ pub mod helpers;
 mod presets;
 mod transactions;
 
-use common::{
-    bytes::{Bytes},
-};
+use common::bytes::Bytes;
+use common::tokio_util::codec::BytesCodec;
+use common::tokio_util::udp::UdpFramed;
 pub use error::Error;
 use models::{Request, Response, SipMessage};
 use std::convert::TryInto;
+use std::net::SocketAddr;
+
+//type UdpSink = common::futures::stream::SplitSink<UdpFramed<BytesCodec>, (Bytes, SocketAddr)>;
 
 //should be generic soon
 //generic is going to be injected during initialization (no initialization atm)
-pub struct Processor;
+pub struct Processor {
+    //sink: UdpSink
+}
 
 #[allow(clippy::new_without_default)]
 impl Processor {
-    pub fn new() -> Self {
-        Self
+    pub fn new(/*sink: UdpSink*/) -> Self {
+        Self {} // { sink }
     }
 
     pub async fn process_message(&self, bytes: Bytes) -> Result<Bytes, Error> {
@@ -27,7 +32,8 @@ impl Processor {
         let sip_message: SipMessage = match sip_message {
             SipMessage::Request(request) => self.handle_request(request),
             SipMessage::Response(_) => Err(Error::from("we don't support responses yet")),
-        }?.into();
+        }?
+        .into();
 
         helpers::trace_sip_message(sip_message.clone())?;
         Ok(sip_message.into())
