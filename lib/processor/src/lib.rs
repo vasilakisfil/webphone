@@ -2,42 +2,23 @@ mod error;
 pub mod helpers;
 mod presets;
 mod transactions;
+pub mod transport;
 
-use common::bytes::Bytes;
-use common::tokio_util::codec::BytesCodec;
-use common::tokio_util::udp::UdpFramed;
 pub use error::Error;
-use models::{Request, Response, SipMessage};
-use std::convert::TryInto;
-use std::net::SocketAddr;
-use tokio::sync::mpsc::Sender;
+use models::{Request, Response};
 
 //type UdpSink = common::futures::stream::SplitSink<UdpFramed<BytesCodec>, (Bytes, SocketAddr)>;
 
 //should be generic soon
 //generic is going to be injected during initialization (no initialization atm)
 pub struct Processor {
-    udp_sink: Sender<(Bytes, SocketAddr)>
+    //udp_sink: Sender<(Bytes, SocketAddr)>
 }
 
 #[allow(clippy::new_without_default)]
 impl Processor {
-    pub fn new(udp_sink: Sender<(Bytes, SocketAddr)>) -> Self {
-        Self { udp_sink }
-    }
-
-    pub async fn process_message(&self, bytes: Bytes) -> Result<Bytes, Error> {
-        let sip_message: SipMessage = bytes.try_into()?;
-        helpers::trace_sip_message(sip_message.clone())?;
-
-        let sip_message: SipMessage = match sip_message {
-            SipMessage::Request(request) => self.handle_request(request),
-            SipMessage::Response(_) => Err(Error::from("we don't support responses yet")),
-        }?
-        .into();
-
-        helpers::trace_sip_message(sip_message.clone())?;
-        Ok(sip_message.into())
+    pub fn new() -> Self {
+        Self {}
     }
 
     fn handle_request(&self, request: Request) -> Result<Response, Error> {

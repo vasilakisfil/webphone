@@ -1,10 +1,6 @@
 use crate::{Error, Request, Response};
-use common::{
-    bytes::{Bytes},
-    libsip,
-    nom::error::VerboseError,
-};
-use std::{convert::{TryFrom, TryInto}};
+use common::{bytes::Bytes, libsip, nom::error::VerboseError};
+use std::convert::{TryFrom, TryInto};
 
 #[derive(Debug, Clone)]
 pub enum SipMessage {
@@ -136,7 +132,6 @@ impl TryFrom<&str> for SipMessage {
         Ok(libsip_sip_message.try_into()?)
     }
 }
-
 
 impl From<Request> for SipMessage {
     fn from(request: Request) -> Self {

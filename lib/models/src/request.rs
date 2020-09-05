@@ -7,7 +7,7 @@ use common::{
         headers::{via::ViaHeader, ContactHeader, Header, Headers, NamedHeader},
         parse_message,
         uri::{domain::Domain, Uri},
-        SipMessageError, SipMessage
+        SipMessage, SipMessageError,
     },
     nom::error::VerboseError,
 };
@@ -161,7 +161,7 @@ impl TryFrom<SipMessage> for Request {
         match sip_message {
             SipMessage::Request { .. } => Ok(Self { inner: sip_message }),
             SipMessage::Response { .. } => {
-                Err("Can't convert a SipMessage::Response into Request !")
+                panic!("Can't convert a SipMessage::Response into Request !")
             }
         }
     }
@@ -192,7 +192,6 @@ impl Into<Bytes> for Request {
         Ok(Bytes::from(self.to_string()))
     }
 }*/
-
 
 fn state_mismatch_for(part: &str) -> String {
     format!("SipMessage and Request mismatch: can't fetch {}", part)

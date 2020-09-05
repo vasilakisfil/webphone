@@ -1,12 +1,11 @@
-use common::bytes::Bytes;
 use common::futures::SinkExt;
 use common::futures_util::stream::StreamExt;
 use common::tokio_util::codec::BytesCodec;
 use common::tokio_util::udp::UdpFramed;
-use processor::Processor;
-use std::net::SocketAddr;
+use processor::transport::Transport;
 use tokio::net::UdpSocket;
-use tokio::sync::mpsc::{self, channel, Receiver, Sender};
+use tokio::sync::mpsc::{self, Receiver, Sender};
+use models::server::UdpTuple;
 
 //TODO: remove UdpFramed from here and use raw datagrams
 pub async fn start() -> Result<(), crate::Error> {
@@ -14,21 +13,19 @@ pub async fn start() -> Result<(), crate::Error> {
     common::log::debug!("starting udp server listening in port 5060");
     let socket = UdpFramed::new(socket, BytesCodec::new());
     let (mut udp_sink, mut udp_stream) = socket.split();
-    let (mut server_sink, mut server_stream): (
-        Sender<(Bytes, SocketAddr)>,
-        Receiver<(Bytes, SocketAddr)>,
-    ) = mpsc::channel(100);
+    let (mut server_sink, mut server_stream): (Sender<UdpTuple>, Receiver<UdpTuple>) =
+        mpsc::channel(100);
 
-    let processor = Processor::new(server_sink.clone()); //this should be initialized elsewhere and injected probably
+    let transport = Transport::new(server_sink.clone()); //this should be initialized elsewhere and injected probably
 
     tokio::spawn(async move {
         loop {
-            let (bytes, addr) = server_stream
+            let udp_tuple = server_stream
                 .recv()
                 .await
                 .expect("udp server stream receive failed!");
             udp_sink
-                .send((bytes, addr))
+                .send(udp_tuple.into())
                 .await
                 .expect("udp send failed!");
         }
@@ -38,10 +35,10 @@ pub async fn start() -> Result<(), crate::Error> {
         match request {
             Ok((request, addr)) => {
                 common::log::debug!("new message from {}", addr);
-                let response = processor.process_message(request.freeze()).await;
+                let response = transport.process_message((request.freeze(), addr).into()).await;
                 match response {
                     Ok(response) => server_sink
-                        .send((response, addr))
+                        .send((response, addr).into())
                         .await
                         .expect("send to server sink channel failed!"),
                     Err(e) => {

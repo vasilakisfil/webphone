@@ -7,7 +7,7 @@ use common::{
         headers::{via::ViaHeader, ContactHeader, Header, Headers, NamedHeader},
         parse_message,
         uri::domain::Domain,
-        SipMessageError, SipMessage
+        SipMessage, SipMessageError,
     },
     nom::error::VerboseError,
 };
@@ -121,7 +121,7 @@ impl TryFrom<SipMessage> for Response {
     fn try_from(sip_message: SipMessage) -> Result<Self, Self::Error> {
         match sip_message {
             SipMessage::Request { .. } => {
-                Err("Can't convert a SipMessage::Request into Response !")
+                panic!("Can't convert a SipMessage::Response into Request !")
             }
             SipMessage::Response { .. } => Ok(Self { inner: sip_message }),
         }

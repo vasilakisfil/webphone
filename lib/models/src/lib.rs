@@ -20,6 +20,7 @@ mod request;
 mod response;
 pub mod transactions;
 mod sip_message;
+pub mod server;
 
 pub use sip_message::SipMessage;
 pub use auth_request::AuthRequest;
