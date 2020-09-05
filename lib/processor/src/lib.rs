@@ -5,20 +5,21 @@ mod transactions;
 pub mod transport;
 
 pub use error::Error;
-use models::{Request, Response};
+use models::{transport::TransportTuple, Request, Response};
+use tokio::sync::mpsc::{Sender};
 
 //type UdpSink = common::futures::stream::SplitSink<UdpFramed<BytesCodec>, (Bytes, SocketAddr)>;
 
 //should be generic soon
 //generic is going to be injected during initialization (no initialization atm)
 pub struct Processor {
-    //udp_sink: Sender<(Bytes, SocketAddr)>
+    transport_handle: Sender<TransportTuple>,
 }
 
 #[allow(clippy::new_without_default)]
 impl Processor {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(transport_handle: Sender<TransportTuple>) -> Self {
+        Self { transport_handle }
     }
 
     fn handle_request(&self, request: Request) -> Result<(), Error> {

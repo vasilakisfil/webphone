@@ -1,23 +1,32 @@
 use crate::{helpers, Error, Processor};
 use models::server::UdpTuple;
-use models::{Request, Response, SipMessage};
+use models::{transport::TransportTuple, Request, Response, SipMessage};
 use std::convert::TryInto;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 //TODO: the udp_server should be something that wraps the channel half, and ideally,
 //defined inside the server component, so transport should be injected in the server
 //and probably the whole thing should be started from a common place
 pub struct Transport {
-    udp_server: Sender<UdpTuple>,
+    server_handle: Sender<UdpTuple>,
     core: Processor,
+    handle: Sender<TransportTuple>,
 }
 
 impl Transport {
-    pub fn new(udp_server: Sender<UdpTuple>) -> Self {
-        Self {
-            udp_server,
-            core: Processor::new(),
-        }
+    pub fn new(server_handle: Sender<UdpTuple>) -> Self {
+        let (transport_sink, transport_stream): (Sender<TransportTuple>, Receiver<TransportTuple>) =
+            mpsc::channel(100);
+
+        let myself = Self {
+            server_handle,
+            core: Processor::new(transport_sink.clone()),
+            handle: transport_sink,
+        };
+
+        myself.spawn(transport_stream);
+
+        myself
     }
 
     pub async fn process_incoming(&self, tuple: UdpTuple) {
@@ -27,6 +36,26 @@ impl Transport {
                 common::log::error!("error when processing incoming message: {:?}", error)
             }
         }
+    }
+
+    fn spawn(&self, mut incoming_stream: Receiver<TransportTuple>) {
+        let mut server_handle = self.server_handle.clone();
+
+        tokio::spawn(async move {
+            loop {
+                let transport_tuple = incoming_stream
+                    .recv()
+                    .await
+                    .expect("transport stream receive failed!");
+
+                self.process_outgoing_message(transport_tuple);
+
+                server_handle
+                    .send(transport_tuple.into())
+                    .await
+                    .expect("udp send failed!");
+            }
+        });
     }
 
     async fn process_incoming_message(&self, tuple: UdpTuple) -> Result<(), Error> {
@@ -61,8 +90,9 @@ impl Transport {
 fn ensure_received_param(_request: &mut Request) {}
 
 //checks if sent-by is correctly set, or the response is mis-routed
-fn check_sent_by(_response: &Response) -> Result<(), Error> {Ok(())}
-
+fn check_sent_by(_response: &Response) -> Result<(), Error> {
+    Ok(())
+}
 
 //TODO: these 2 functions should be one using a simple trait
 fn find_transaction_for_request(_request: &Request) -> Option<Transaction> {
