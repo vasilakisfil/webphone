@@ -7,8 +7,7 @@ use common::{
         headers::{via::ViaHeader, ContactHeader, Header, Headers, NamedHeader},
         parse_message,
         uri::{domain::Domain, Uri},
-        MissingContactExpiresError, MissingHeaderError, MissingTagError, MissingUsernameError,
-        MissingViaBranchError, SipMessage,
+        SipMessageError, SipMessage
     },
     nom::error::VerboseError,
 };
@@ -75,11 +74,11 @@ impl Request {
         }
     }
 
-    pub fn from_header_domain(&self) -> Result<&Domain, MissingUsernameError> {
+    pub fn from_header_domain(&self) -> Result<&Domain, SipMessageError> {
         if let Ok(header) = self.from_header() {
             Ok(&header.uri.host)
         } else {
-            Err(MissingUsernameError::From)
+            Err(SipMessageError::MissingFromUsername)
         }
     }
 
@@ -90,7 +89,7 @@ impl Request {
         header!(
             self.inner.headers().0.iter(),
             Header::Authorization,
-            MissingUsernameError::From
+            SipMessageError::MissingFromUsername
         )
         .ok()
         .map(|h| h.clone().try_into())
@@ -101,11 +100,11 @@ impl Request {
         true
     }
 
-    pub fn contact_header_instance(&self) -> Result<&String, MissingHeaderError> {
+    pub fn contact_header_instance(&self) -> Result<&String, SipMessageError> {
         named_header_param!(
             self.contact_header(),
             "+sip.instance",
-            MissingHeaderError::Contact
+            SipMessageError::MissingContactHeader
         )
         .map(|instance| match instance {
             common::libsip::headers::GenValue::Token(inner) => inner,
@@ -113,11 +112,11 @@ impl Request {
         })
     }
 
-    pub fn user_agent(&self) -> Result<&String, MissingHeaderError> {
+    pub fn user_agent(&self) -> Result<&String, SipMessageError> {
         header!(
             self.inner.headers().0.iter(),
             Header::UserAgent,
-            MissingHeaderError::Contact
+            SipMessageError::MissingContactHeader
         )
     }
 
@@ -127,30 +126,30 @@ impl Request {
             pub fn body_mut(&mut self) -> &mut Vec<u8>;
             pub fn headers(&self) -> &Headers;
             pub fn headers_mut(&mut self) -> &mut Headers;
-            pub fn from_header(&self) -> Result<&NamedHeader, MissingHeaderError>;
-            pub fn from_header_mut(&mut self) -> Result<&mut NamedHeader, MissingHeaderError>;
-            pub fn from_header_tag(&self) -> Result<&String, MissingTagError>;
+            pub fn from_header(&self) -> Result<&NamedHeader, SipMessageError>;
+            pub fn from_header_mut(&mut self) -> Result<&mut NamedHeader, SipMessageError>;
+            pub fn from_header_tag(&self) -> Result<&String, SipMessageError>;
             pub fn set_from_header_tag(&mut self, tag: String);
-            pub fn from_header_username(&self) -> Result<&String, MissingUsernameError>;
-            pub fn to_header(&self) -> Result<&NamedHeader, MissingHeaderError>;
+            pub fn from_header_username(&self) -> Result<&String, SipMessageError>;
+            pub fn to_header(&self) -> Result<&NamedHeader, SipMessageError>;
             #[allow(clippy::wrong_self_convention)]
-            pub fn to_header_mut(&mut self) -> Result<&mut NamedHeader, MissingHeaderError>;
-            pub fn to_header_tag(&self) -> Result<&String, MissingTagError>;
+            pub fn to_header_mut(&mut self) -> Result<&mut NamedHeader, SipMessageError>;
+            pub fn to_header_tag(&self) -> Result<&String, SipMessageError>;
             pub fn set_to_header_tag(&mut self, tag: String);
-            pub fn to_header_username(&self) -> Result<&String, MissingUsernameError>;
-            pub fn via_header(&self) -> Result<&ViaHeader, MissingHeaderError>;
-            pub fn via_header_mut(&mut self) -> Result<&mut ViaHeader, MissingHeaderError>;
-            pub fn via_header_branch(&self) -> Result<&String, MissingViaBranchError>;
-            pub fn call_id(&self) -> Result<&String, MissingHeaderError>;
-            pub fn call_id_mut(&mut self) -> Result<&mut String, MissingHeaderError>;
-            pub fn cseq(&self) -> Result<(u32, Method), MissingHeaderError>;
-            pub fn cseq_mut(&mut self) -> Result<(&mut u32, &mut Method), MissingHeaderError>;
-            pub fn contact_header(&self) -> Result<&ContactHeader, MissingHeaderError>;
-            pub fn contact_header_mut(&mut self) -> Result<&mut ContactHeader, MissingHeaderError>;
-            pub fn contact_header_username(&self) -> Result<&String, MissingUsernameError>;
-            pub fn contact_header_expires(&self) -> Result<u32, MissingContactExpiresError>;
-            pub fn expires_header(&self) -> Result<u32, MissingHeaderError>;
-            pub fn expires_header_mut(&mut self) -> Result<&mut u32, MissingHeaderError>;
+            pub fn to_header_username(&self) -> Result<&String, SipMessageError>;
+            pub fn via_header(&self) -> Result<&ViaHeader, SipMessageError>;
+            pub fn via_header_mut(&mut self) -> Result<&mut ViaHeader, SipMessageError>;
+            pub fn via_header_branch(&self) -> Result<&String, SipMessageError>;
+            pub fn call_id(&self) -> Result<&String, SipMessageError>;
+            pub fn call_id_mut(&mut self) -> Result<&mut String, SipMessageError>;
+            pub fn cseq(&self) -> Result<(u32, Method), SipMessageError>;
+            pub fn cseq_mut(&mut self) -> Result<(&mut u32, &mut Method), SipMessageError>;
+            pub fn contact_header(&self) -> Result<&ContactHeader, SipMessageError>;
+            pub fn contact_header_mut(&mut self) -> Result<&mut ContactHeader, SipMessageError>;
+            pub fn contact_header_username(&self) -> Result<&String, SipMessageError>;
+            pub fn contact_header_expires(&self) -> Result<u32, SipMessageError>;
+            pub fn expires_header(&self) -> Result<u32, SipMessageError>;
+            pub fn expires_header_mut(&mut self) -> Result<&mut u32, SipMessageError>;
         }
     }
 }

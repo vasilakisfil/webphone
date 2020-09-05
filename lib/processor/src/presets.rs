@@ -1,8 +1,8 @@
 use common::{
     libsip::{
+        core::method::Method,
         headers::{AuthHeader, Header, Headers},
         uri::{Domain, UriParam},
-        core::method::Method,
         ResponseGenerator,
     },
     uuid::Uuid,
@@ -37,8 +37,8 @@ pub fn create_registration_ok_from(
             let mut contact = request.contact_header()?.clone();
             contact.set_param("expires", Some("600"));
             headers.push(Header::Contact(contact));
-        },
-        _ => ()
+        }
+        _ => (),
     };
     headers.push(Header::ContentLength(0));
     headers.push(Header::Server("viska".into()));
@@ -75,8 +75,8 @@ pub fn create_unauthorized_from(
             let mut contact = request.contact_header()?.clone();
             contact.set_param("expires", Some("600"));
             headers.push(Header::Contact(contact));
-        },
-        _ => ()
+        }
+        _ => (),
     };
     headers.push(Header::ContentLength(0));
     headers.push(Header::Server("viska".into()));

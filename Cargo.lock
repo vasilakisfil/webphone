@@ -444,7 +444,7 @@ checksum = "a9f8082297d534141b30c8d39e9b1773713ab50fdbe4ff30f750d063b3bfd701"
 [[package]]
 name = "libsip"
 version = "0.2.6"
-source = "git+https://github.com/ByteHeathen/libsip?rev=f260203f442a63848821e650159f411b47a57ce0#f260203f442a63848821e650159f411b47a57ce0"
+source = "git+https://github.com/vasilakisfil/libsip?branch=fix/auth-qop-param#d24a150e02138337c30f4f85e16da737f43670df"
 dependencies = [
  "md5",
  "nom",
