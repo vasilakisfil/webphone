@@ -13,10 +13,10 @@ pub async fn start() -> Result<(), crate::Error> {
     common::log::debug!("starting udp server listening in port 5060");
     let socket = UdpFramed::new(socket, BytesCodec::new());
     let (mut udp_sink, mut udp_stream) = socket.split();
-    let (mut server_sink, mut server_stream): (Sender<UdpTuple>, Receiver<UdpTuple>) =
+    let (server_sink, mut server_stream): (Sender<UdpTuple>, Receiver<UdpTuple>) =
         mpsc::channel(100);
 
-    let transport = Transport::new(server_sink.clone()); //this should be initialized elsewhere and injected probably
+    let transport = Transport::new(server_sink); //this should be initialized elsewhere and injected probably
 
     tokio::spawn(async move {
         loop {
@@ -35,16 +35,7 @@ pub async fn start() -> Result<(), crate::Error> {
         match request {
             Ok((request, addr)) => {
                 common::log::debug!("new message from {}", addr);
-                let response = transport.process_message((request.freeze(), addr).into()).await;
-                match response {
-                    Ok(response) => server_sink
-                        .send((response, addr).into())
-                        .await
-                        .expect("send to server sink channel failed!"),
-                    Err(e) => {
-                        common::log::error!("processing sip message failed: {}", e.to_string())
-                    }
-                };
+                transport.process_incoming((request.freeze(), addr).into()).await;
             }
             Err(e) => common::log::error!("failed to receive message from udp stream: {:?}", e),
         }

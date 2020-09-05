@@ -21,10 +21,14 @@ impl Processor {
         Self {}
     }
 
-    fn handle_request(&self, request: Request) -> Result<Response, Error> {
-        let response = self.handle_next_step_for(self.dialog_from(request.clone()), request)?;
+    fn handle_request(&self, request: Request) -> Result<(), Error> {
+        let _response = self.handle_next_step_for(self.dialog_from(request.clone()), request)?;
 
-        Ok(response)
+        Ok(())
+    }
+
+    fn handle_response(&self, _response: Response) -> Result<(), Error> {
+        Ok(())
     }
 
     fn handle_next_step_for(
