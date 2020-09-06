@@ -59,7 +59,7 @@ impl Transport {
                     .await
                     .expect("transport stream receive failed!");
 
-                Self::process_outgoing_message(&transport_tuple);
+                process_outgoing_message(&transport_tuple);
 
                 server_handle
                     .send(transport_tuple.into())
@@ -79,13 +79,10 @@ impl Transport {
         })
     }
 
-    fn process_outgoing_message(_tuple: &TransportTuple) {
-    }
-
     fn handle_incoming_request(&self, mut request: Request) -> Result<(), Error> {
         ensure_received_param(&mut request);
 
-        Ok(match find_transaction_for_request(&request) {
+        Ok(match Transaction::find_transaction_for_request(&request) {
             Some(transaction) => transaction.handle_request(request)?,
             None => self.core.handle_request(request)?,
         })
@@ -93,7 +90,7 @@ impl Transport {
 
     fn handle_incoming_response(&self, response: Response) -> Result<(), Error> {
         check_sent_by(&response)?;
-        Ok(match find_transaction_for_response(&response) {
+        Ok(match Transaction::find_transaction_for_response(&response) {
             Some(transaction) => transaction.handle_response(response)?,
             None => self.core.handle_response(response)?,
         })
@@ -108,16 +105,19 @@ fn check_sent_by(_response: &Response) -> Result<(), Error> {
     Ok(())
 }
 
-//TODO: these 2 functions should be one using a simple trait
-fn find_transaction_for_request(_request: &Request) -> Option<Transaction> {
-    None
+fn process_outgoing_message(_tuple: &TransportTuple) {
 }
-fn find_transaction_for_response(_response: &Response) -> Option<Transaction> {
-    None
-}
+
 
 struct Transaction;
 impl Transaction {
+    //TODO: these 2 functions should be one using a simple trait
+    pub fn find_transaction_for_request(_request: &Request) -> Option<Transaction> {
+        None
+    }
+    pub fn find_transaction_for_response(_response: &Response) -> Option<Transaction> {
+        None
+    }
     pub fn handle_request(&self, _request: Request) -> Result<(), Error> {
         //Ok(crate::presets::create_unauthorized_from(request)?)
         Ok(())
@@ -127,3 +127,4 @@ impl Transaction {
         Ok(())
     }
 }
+
