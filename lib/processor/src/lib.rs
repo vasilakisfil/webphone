@@ -13,6 +13,7 @@ use tokio::sync::mpsc::{Sender};
 //should be generic soon
 //generic is going to be injected during initialization (no initialization atm)
 pub struct Processor {
+    #[allow(dead_code)]
     transport_handle: Sender<TransportTuple>,
 }
 

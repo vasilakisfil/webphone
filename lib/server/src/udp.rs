@@ -2,13 +2,13 @@ use common::futures::SinkExt;
 use common::futures_util::stream::StreamExt;
 use common::tokio_util::codec::BytesCodec;
 use common::tokio_util::udp::UdpFramed;
-use processor::transport::Transport;
+use processor::transport::TransportLayer;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use models::server::UdpTuple;
 
 //TODO: remove UdpFramed from here and use raw datagrams
-pub async fn start() -> Result<(), crate::Error> {
+pub async fn start<T: TransportLayer>() -> Result<(), crate::Error> {
     let socket = UdpSocket::bind("0.0.0.0:5060").await?;
     common::log::debug!("starting udp server listening in port 5060");
     let socket = UdpFramed::new(socket, BytesCodec::new());
@@ -16,7 +16,7 @@ pub async fn start() -> Result<(), crate::Error> {
     let (server_sink, mut server_stream): (Sender<UdpTuple>, Receiver<UdpTuple>) =
         mpsc::channel(100);
 
-    let transport = Transport::new(server_sink); //this should be initialized elsewhere and injected probably
+    let transport = T::new(server_sink); //this should be initialized elsewhere and injected probably
 
     tokio::spawn(async move {
         loop {

@@ -3,6 +3,7 @@ use models::server::UdpTuple;
 use models::{transport::TransportTuple, Request, Response, SipMessage};
 use std::convert::TryInto;
 use tokio::sync::mpsc::{self, Receiver, Sender};
+use common::async_trait::async_trait;
 
 //TODO: the udp_server should be something that wraps the channel half, and ideally,
 //defined inside the server component, so transport should be injected in the server
@@ -10,11 +11,19 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 pub struct Transport {
     server_handle: Sender<UdpTuple>,
     core: Processor,
+    #[allow(dead_code)]
     handle: Sender<TransportTuple>,
 }
 
-impl Transport {
-    pub fn new(server_handle: Sender<UdpTuple>) -> Self {
+#[async_trait]
+pub trait TransportLayer {
+    fn new(server_handle: Sender<UdpTuple>) -> Self;
+    async fn process_incoming(&self, tuple: UdpTuple);
+}
+
+#[async_trait]
+impl TransportLayer for Transport {
+    fn new(server_handle: Sender<UdpTuple>) -> Self {
         let (transport_sink, transport_stream): (Sender<TransportTuple>, Receiver<TransportTuple>) =
             mpsc::channel(100);
 
@@ -29,7 +38,7 @@ impl Transport {
         myself
     }
 
-    pub async fn process_incoming(&self, tuple: UdpTuple) {
+    async fn process_incoming(&self, tuple: UdpTuple) {
         match self.process_incoming_message(tuple).await {
             Ok(_) => (),
             Err(error) => {
@@ -37,7 +46,9 @@ impl Transport {
             }
         }
     }
+}
 
+impl Transport {
     fn spawn(&self, mut incoming_stream: Receiver<TransportTuple>) {
         let mut server_handle = self.server_handle.clone();
 
@@ -68,7 +79,7 @@ impl Transport {
         })
     }
 
-    fn process_outgoing_message(mut tuple: &TransportTuple) {
+    fn process_outgoing_message(_tuple: &TransportTuple) {
     }
 
     fn handle_incoming_request(&self, mut request: Request) -> Result<(), Error> {

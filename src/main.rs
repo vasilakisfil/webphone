@@ -1,3 +1,5 @@
+use processor::transport::{Transport};
+
 #[tokio::main]
 async fn main() {
     common::pretty_env_logger::init_timed();
@@ -10,7 +12,7 @@ async fn main() {
     */
 
     let udp = tokio::spawn(async move {
-        server::udp::start()
+        server::udp::start::<Transport>()
             .await
             .expect("failed to start udp server");
     });
