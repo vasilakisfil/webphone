@@ -1,4 +1,5 @@
 use crate::{helpers, Error, Processor};
+use crate::transaction::{Transaction, TransactionLayer};
 use models::server::UdpTuple;
 use models::{transport::TransportTuple, Request, Response, SipMessage};
 use std::convert::TryInto;
@@ -27,15 +28,11 @@ impl TransportLayer for Transport {
         let (transport_sink, transport_stream): (Sender<TransportTuple>, Receiver<TransportTuple>) =
             mpsc::channel(100);
 
-        let myself = Self {
+        Self {
             server_handle,
             core: Processor::new(transport_sink.clone()),
             handle: transport_sink,
-        };
-
-        myself.spawn(transport_stream);
-
-        myself
+        }
     }
 
     async fn process_incoming(&self, tuple: UdpTuple) {
@@ -49,26 +46,6 @@ impl TransportLayer for Transport {
 }
 
 impl Transport {
-    fn spawn(&self, mut incoming_stream: Receiver<TransportTuple>) {
-        let mut server_handle = self.server_handle.clone();
-
-        tokio::spawn(async move {
-            loop {
-                let transport_tuple = incoming_stream
-                    .recv()
-                    .await
-                    .expect("transport stream receive failed!");
-
-                process_outgoing_message(&transport_tuple);
-
-                server_handle
-                    .send(transport_tuple.into())
-                    .await
-                    .expect("udp send failed!");
-            }
-        });
-    }
-
     async fn process_incoming_message(&self, tuple: UdpTuple) -> Result<(), Error> {
         let sip_message: SipMessage = tuple.bytes.try_into()?;
         helpers::trace_sip_message(sip_message.clone())?;
@@ -95,6 +72,28 @@ impl Transport {
             None => self.core.handle_response(response)?,
         })
     }
+
+/*
+    fn spawn(&self, mut incoming_stream: Receiver<TransportTuple>) {
+        let mut server_handle = self.server_handle.clone();
+
+        tokio::spawn(async move {
+            loop {
+                let transport_tuple = incoming_stream
+                    .recv()
+                    .await
+                    .expect("transport stream receive failed!");
+
+                process_outgoing_message(&transport_tuple);
+
+                server_handle
+                    .send(transport_tuple.into())
+                    .await
+                    .expect("udp send failed!");
+            }
+        });
+    }
+*/
 }
 
 //adds "received" param if necessary
@@ -107,24 +106,3 @@ fn check_sent_by(_response: &Response) -> Result<(), Error> {
 
 fn process_outgoing_message(_tuple: &TransportTuple) {
 }
-
-
-struct Transaction;
-impl Transaction {
-    //TODO: these 2 functions should be one using a simple trait
-    pub fn find_transaction_for_request(_request: &Request) -> Option<Transaction> {
-        None
-    }
-    pub fn find_transaction_for_response(_response: &Response) -> Option<Transaction> {
-        None
-    }
-    pub fn handle_request(&self, _request: Request) -> Result<(), Error> {
-        //Ok(crate::presets::create_unauthorized_from(request)?)
-        Ok(())
-    }
-    pub fn handle_response(&self, _response: Response) -> Result<(), Error> {
-        //Ok(crate::presets::create_unauthorized_from(request)?)
-        Ok(())
-    }
-}
-

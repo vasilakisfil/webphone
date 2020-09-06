@@ -2,7 +2,9 @@ mod error;
 pub mod helpers;
 mod presets;
 mod transactions;
+
 pub mod transport;
+pub mod transaction;
 
 pub use error::Error;
 use models::{transport::TransportTuple, Request, Response};
