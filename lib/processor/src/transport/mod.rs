@@ -48,7 +48,7 @@ impl Transport {
                     .await
                     .expect("transport stream receive failed!");
 
-                self.process_outgoing_message(transport_tuple);
+                Self::process_outgoing_message(&transport_tuple);
 
                 server_handle
                     .send(transport_tuple.into())
@@ -66,6 +66,9 @@ impl Transport {
             SipMessage::Request(request) => self.handle_incoming_request(request)?,
             SipMessage::Response(response) => self.handle_incoming_response(response)?,
         })
+    }
+
+    fn process_outgoing_message(mut tuple: &TransportTuple) {
     }
 
     fn handle_incoming_request(&self, mut request: Request) -> Result<(), Error> {
