@@ -1,4 +1,6 @@
 use processor::transport::{Transport};
+use processor::core::{Core};
+use processor::transaction::{Transaction};
 
 #[tokio::main]
 async fn main() {
@@ -12,7 +14,7 @@ async fn main() {
     */
 
     let udp = tokio::spawn(async move {
-        server::udp::start::<Transport>()
+        server::udp::start::<Transport<Core, Transaction>>()
             .await
             .expect("failed to start udp server");
     });
