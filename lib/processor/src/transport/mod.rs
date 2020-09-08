@@ -34,18 +34,19 @@ pub trait TransportLayer {
 #[async_trait]
 impl<C, T> TransportLayer for Transport<C, T>
 where
-    C: CoreLayer + Send + Sync,
+    C: CoreLayer + Send + Sync + Clone,
     T: TransactionLayer + Send + Sync,
 {
     fn new(server_handle: Sender<UdpTuple>) -> Self {
         let (transport_sink, transport_stream): (Sender<TransportTuple>, Receiver<TransportTuple>) =
             mpsc::channel(100);
 
+        let core = C::new(transport_sink.clone());
         Self {
             server_handle,
-            core: C::new(transport_sink.clone()),
+            core: core.clone(),
             handle: transport_sink,
-            ts: T::new()
+            ts: T::new(core)
         }
     }
 

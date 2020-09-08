@@ -5,7 +5,7 @@ use crate::Error;
 //also the find and then handle, could be problematic, and could possibly be hidden behind the same
 //function?
 pub trait TransactionLayer {
-    fn new() -> Self;
+    fn new(_core: impl crate::core::CoreLayer) -> Self;
     fn find_transaction_for_request(&self, _request: &Request) -> Option<Transaction>;
     fn find_transaction_for_response(&self, _response: &Response) -> Option<Transaction>;
     fn handle_request(&self, _request: Request) -> Result<(), Error>;
@@ -14,7 +14,7 @@ pub trait TransactionLayer {
 
 pub struct Transaction;
 impl TransactionLayer for Transaction {
-    fn new() -> Self {
+    fn new(_core: impl crate::core::CoreLayer) -> Self {
         Self
     }
     //TODO: these 2 functions should be one using a simple trait

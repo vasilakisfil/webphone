@@ -2,6 +2,7 @@ use crate::Error;
 use models::{transport::TransportTuple, Request, Response};
 use tokio::sync::mpsc::{Sender};
 
+#[derive(Clone)]
 pub struct Core {
     #[allow(dead_code)]
     transport_handle: Sender<TransportTuple>,
