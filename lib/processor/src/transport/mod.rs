@@ -1,70 +1,93 @@
-use crate::{
-    core::CoreLayer,
-    helpers,
-    transaction::{TransactionLayer},
-    Error,
-};
+use crate::{core::CoreLayer, helpers, transaction::TransactionLayer, Error};
 use common::async_trait::async_trait;
 use models::server::UdpTuple;
 use models::{transport::TransportTuple, Request, Response, SipMessage};
 use std::convert::TryInto;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
-//TODO: the udp_server should be something that wraps the channel half, and ideally,
-//defined inside the server component, so transport should be injected in the server
-//and probably the whole thing should be started from a common place
+pub trait TransportLayer {
+    type Handler: TransportLayerSink;
+    fn new(server_handle: Sender<UdpTuple>) -> Self::Handler;
+}
+
+#[async_trait]
+pub trait TransportLayerSink {
+    async fn send(&mut self, tuple: UdpTuple);
+}
+
 pub struct Transport<C, T>
 where
     C: CoreLayer + Send + Sync,
-    T: TransactionLayer + Send + Sync
+    T: TransactionLayer + Send + Sync,
 {
-    server_handle: Sender<UdpTuple>,
+    from_server_stream: Receiver<UdpTuple>,
+    from_core_stream: Receiver<TransportTuple>,
     core: C,
-    #[allow(dead_code)]
-    handle: Sender<TransportTuple>,
-    ts: T
+    ts: T,
+}
+
+pub struct TransportSink {
+    pub from_server_sink: Sender<UdpTuple>,
 }
 
 #[async_trait]
-pub trait TransportLayer {
-    fn new(server_handle: Sender<UdpTuple>) -> Self;
-    async fn process_incoming(&self, tuple: UdpTuple);
+impl TransportLayerSink for TransportSink {
+    async fn send(&mut self, msg: UdpTuple) {
+        self.from_server_sink
+            .send(msg)
+            .await
+            .expect("sending into transport layer from server failed")
+    }
 }
 
-#[async_trait]
 impl<C, T> TransportLayer for Transport<C, T>
 where
     C: CoreLayer + Send + Sync + Clone,
     T: TransactionLayer + Send + Sync,
 {
-    fn new(server_handle: Sender<UdpTuple>) -> Self {
-        let (transport_sink, transport_stream): (Sender<TransportTuple>, Receiver<TransportTuple>) =
+    type Handler = TransportSink;
+
+    fn new(to_server_sink: Sender<UdpTuple>) -> TransportSink {
+        let (_from_server_sink, from_server_stream): (Sender<UdpTuple>, Receiver<UdpTuple>) =
             mpsc::channel(100);
 
-        let core = C::new(transport_sink.clone());
-        Self {
-            server_handle,
-            core: core.clone(),
-            handle: transport_sink,
-            ts: T::new(core)
-        }
-    }
+        let (_from_core_sink, from_core_stream): (
+            Sender<TransportTuple>,
+            Receiver<TransportTuple>,
+        ) = mpsc::channel(100);
 
-    async fn process_incoming(&self, tuple: UdpTuple) {
-        match self.process_incoming_message(tuple).await {
-            Ok(_) => (),
-            Err(error) => {
-                common::log::error!("error when processing incoming message: {:?}", error)
-            }
-        }
+        let core = C::new(_from_core_sink.clone());
+        let ts = T::new(core, _from_core_sink);
+
+        let transport = Self {
+            from_server_stream,
+            from_core_stream,
+            core,
+            ts,
+        };
+
+        tokio::spawn(transport.run());
+
+        return TransportSink { _from_server_sink };
     }
 }
 
 impl<C, T> Transport<C, T>
 where
     C: CoreLayer + Send + Sync,
-    T: TransactionLayer + Send + Sync
+    T: TransactionLayer + Send + Sync,
 {
+    fn run(&self) {
+        loop {
+            let message = self.from_server_stream
+                .recv()
+                .await
+                .expect("udp server stream receive failed!");
+
+            println!("received message! {:?}", message);
+        }
+    }
+
     async fn process_incoming_message(&self, tuple: UdpTuple) -> Result<(), Error> {
         let sip_message: SipMessage = tuple.bytes.try_into()?;
         helpers::trace_sip_message(sip_message.clone())?;
@@ -86,12 +109,10 @@ where
 
     fn handle_incoming_response(&self, response: Response) -> Result<(), Error> {
         check_sent_by(&response)?;
-        Ok(
-            match self.ts.find_transaction_for_response(&response) {
-                Some(transaction) => transaction.handle_response(response)?,
-                None => self.core.handle_response(response)?,
-            },
-        )
+        Ok(match self.ts.find_transaction_for_response(&response) {
+            Some(transaction) => transaction.handle_response(response)?,
+            None => self.core.handle_response(response)?,
+        })
     }
 
     /*

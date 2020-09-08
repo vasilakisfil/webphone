@@ -1,4 +1,5 @@
 pub mod factories;
+pub mod processor;
 
 use diesel_migrations::{self};
 diesel_migrations::embed_migrations!();

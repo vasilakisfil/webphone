@@ -2,7 +2,7 @@ use common::futures::SinkExt;
 use common::futures_util::stream::StreamExt;
 use common::tokio_util::codec::BytesCodec;
 use common::tokio_util::udp::UdpFramed;
-use processor::transport::TransportLayer;
+use processor::transport::{TransportLayer, TransportLayerSink};
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use models::server::UdpTuple;
@@ -16,7 +16,7 @@ pub async fn start<T: TransportLayer>() -> Result<(), crate::Error> {
     let (server_sink, mut server_stream): (Sender<UdpTuple>, Receiver<UdpTuple>) =
         mpsc::channel(100);
 
-    let transport = T::new(server_sink); //this should be initialized elsewhere and injected probably
+    let mut transport_sink = T::new(server_sink); //this should be initialized elsewhere and injected probably
 
     tokio::spawn(async move {
         loop {
@@ -35,7 +35,7 @@ pub async fn start<T: TransportLayer>() -> Result<(), crate::Error> {
         match request {
             Ok((request, addr)) => {
                 common::log::debug!("new message from {}", addr);
-                transport.process_incoming((request.freeze(), addr).into()).await;
+                transport_sink.send((request.freeze(), addr).into()).await;
             }
             Err(e) => common::log::error!("failed to receive message from udp stream: {:?}", e),
         }
