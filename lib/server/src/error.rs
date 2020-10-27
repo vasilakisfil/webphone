@@ -11,7 +11,6 @@ pub struct Error {
 #[derive(Debug)]
 pub enum ErrorKind {
     Empty,
-    Processor(processor::Error),
     Custom(String),
     Io(std::io::Error),
 }
@@ -36,7 +35,6 @@ impl From<Option<ErrorKind>> for ErrorKind {
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorKind::Processor(ref inner) => write!(f, "Processor error: {}", inner),
             ErrorKind::Custom(ref inner) => write!(f, "{}", inner),
             _ => write!(f, "unknown error, {:?}", self),
         }
@@ -69,12 +67,6 @@ impl From<String> for ErrorKind {
 impl From<&str> for ErrorKind {
     fn from(e: &str) -> Self {
         ErrorKind::Custom(e.into())
-    }
-}
-
-impl From<processor::Error> for ErrorKind {
-    fn from(e: processor::Error) -> Self {
-        ErrorKind::Processor(e)
     }
 }
 

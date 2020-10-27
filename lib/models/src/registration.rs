@@ -1,6 +1,6 @@
 use common::{
-    chrono::{DateTime, Duration, Utc},
-    ipnetwork::{IpNetwork, Ipv4Network},
+    chrono::{DateTime, Utc },
+    ipnetwork::{IpNetwork},
 };
 use std::{convert::TryFrom, net::Ipv4Addr};
 
@@ -20,7 +20,7 @@ pub struct Registration {
     pub reg_id: i32,
     pub ip_address: IpNetwork,
     pub port: i16,
-    pub transport: crate::TransportType,
+    pub transport: rsip::common::Transport,
 }
 
 pub struct UpdateRegistration {
@@ -35,13 +35,15 @@ pub struct UpdateRegistration {
     pub reg_id: Option<i32>,
     pub ip_address: IpNetwork,
     pub port: i16,
-    pub transport: crate::TransportType,
+    pub transport: rsip::common::Transport,
 }
 
-impl TryFrom<crate::Request> for UpdateRegistration {
-    type Error = crate::Error;
+impl TryFrom<rsip::Request> for UpdateRegistration {
+    type Error = rsip::Error;
 
-    fn try_from(request: crate::Request) -> Result<Self, Self::Error> {
+    fn try_from(request: rsip::Request) -> Result<Self, Self::Error> {
+        panic!("hello?");
+        /*
         Ok(Self {
             username: request.from_header_username()?.clone(),
             domain: Some(request.from_header_domain()?.clone().to_string()),
@@ -63,5 +65,6 @@ impl TryFrom<crate::Request> for UpdateRegistration {
             transport: crate::TransportType::Udp,
             reg_id: None,
         })
+        */
     }
 }

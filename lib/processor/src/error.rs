@@ -13,7 +13,7 @@ pub struct Error {
 pub enum ErrorKind {
     Empty,
     Models(models::Error),
-    Store(store::Error),
+    //Store(store::Error),
     Libsip(String),
     Custom(String),
     SipHelpers(String),
@@ -40,7 +40,7 @@ impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ErrorKind::Models(ref inner) => write!(f, "models transformation error: {}", inner),
-            ErrorKind::Store(ref inner) => write!(f, "store error: {}", inner),
+//            ErrorKind::Store(ref inner) => write!(f, "store error: {}", inner),
             ErrorKind::Libsip(ref inner) => write!(f, "libsip error: {}", inner),
             ErrorKind::Custom(ref inner) => write!(f, "{}", inner),
             _ => write!(f, "unknown error, {:?}", self),
@@ -82,12 +82,13 @@ impl From<models::Error> for ErrorKind {
         ErrorKind::Models(e)
     }
 }
-
+/*
 impl From<store::Error> for ErrorKind {
     fn from(e: store::Error) -> Self {
         ErrorKind::Store(e)
     }
 }
+*/
 
 impl From<libsip::core::SipMessageError> for ErrorKind {
     fn from(e: libsip::core::SipMessageError) -> Self {
@@ -104,5 +105,11 @@ impl From<std::io::Error> for ErrorKind {
 impl From<sip_helpers::Error> for ErrorKind {
     fn from(e: sip_helpers::Error) -> Self {
         ErrorKind::SipHelpers(format!("{:?}", e))
+    }
+}
+
+impl From<rsip::Error> for ErrorKind {
+    fn from(e: rsip::Error) -> Self {
+        ErrorKind::Rsip(e)
     }
 }

@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use common::libsip;
 use std::{error::Error as StdError, fmt};
 
 #[derive(Debug)]
@@ -11,7 +12,10 @@ pub struct Error {
 #[derive(Debug)]
 pub enum ErrorKind {
     Empty,
-    MissingPart(String),
+    Models(models::Error),
+    //Store(store::Error),
+    Rsip(rsip::Error),
+    Libsip(String),
     Custom(String),
 }
 
@@ -19,12 +23,6 @@ impl Error {
     pub fn custom(reason: String) -> Self {
         Self {
             kind: ErrorKind::from(reason),
-        }
-    }
-
-    pub fn missing_part(part: String) -> Self {
-        Self {
-            kind: ErrorKind::MissingPart(part),
         }
     }
 }
@@ -41,8 +39,11 @@ impl From<Option<ErrorKind>> for ErrorKind {
 impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ErrorKind::MissingPart(ref inner) => write!(f, "missing part error: {}", inner),
+            ErrorKind::Models(ref inner) => write!(f, "models transformation error: {}", inner),
+//            ErrorKind::Store(ref inner) => write!(f, "store error: {}", inner),
+            ErrorKind::Libsip(ref inner) => write!(f, "libsip error: {}", inner),
             ErrorKind::Custom(ref inner) => write!(f, "{}", inner),
+            ErrorKind::Rsip(ref inner) => write!(f, "{}", inner),
             _ => write!(f, "unknown error, {:?}", self),
         }
     }
@@ -74,5 +75,37 @@ impl From<String> for ErrorKind {
 impl From<&str> for ErrorKind {
     fn from(e: &str) -> Self {
         ErrorKind::Custom(e.into())
+    }
+}
+
+impl From<models::Error> for ErrorKind {
+    fn from(e: models::Error) -> Self {
+        ErrorKind::Models(e)
+    }
+}
+
+/*
+impl From<store::Error> for ErrorKind {
+    fn from(e: store::Error) -> Self {
+        ErrorKind::Store(e)
+    }
+}
+*/
+
+impl From<libsip::core::SipMessageError> for ErrorKind {
+    fn from(e: libsip::core::SipMessageError) -> Self {
+        ErrorKind::Libsip(format!("{:?}", e))
+    }
+}
+
+impl From<std::io::Error> for ErrorKind {
+    fn from(e: std::io::Error) -> Self {
+        ErrorKind::Libsip(format!("{:?}", e))
+    }
+}
+
+impl From<rsip::Error> for ErrorKind {
+    fn from(e: rsip::Error) -> Self {
+        ErrorKind::Rsip(e)
     }
 }

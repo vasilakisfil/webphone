@@ -4,9 +4,9 @@ use std::net::SocketAddr;
 
 #[derive(Debug)]
 pub struct TransactionMsg {
-    pub sip_message: crate::SipMessage,
+    pub sip_message: rsip::SipMessage,
     pub peer: SocketAddr,
-    pub transport: crate::TransportType, //pub ttl: u32
+    pub transport: rsip::common::Transport, //pub ttl: u32
 }
 
 impl Into<TransportMsg> for TransactionMsg {

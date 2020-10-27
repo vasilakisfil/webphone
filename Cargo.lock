@@ -425,14 +425,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "helpers"
-version = "0.1.0"
-dependencies = [
- "common",
- "store",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -655,8 +647,8 @@ name = "models"
 version = "0.1.0"
 dependencies = [
  "common",
+ "rsip",
  "serde",
- "sip-helpers",
  "tokio",
 ]
 
@@ -833,15 +825,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "processor"
+name = "processor2"
 version = "0.1.0"
 dependencies = [
  "common",
- "helpers",
  "models",
+ "rsip",
  "serde",
- "sip-helpers",
- "store",
  "tokio",
 ]
 
@@ -1023,9 +1013,8 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "common",
- "helpers",
  "models",
- "processor",
+ "processor2",
  "serde",
  "tokio",
 ]
@@ -1047,13 +1036,6 @@ checksum = "94f478ede9f64724c5d173d7bb56099ec3e2d9fc2774aac65d34b8b890405f41"
 dependencies = [
  "arc-swap",
  "libc",
-]
-
-[[package]]
-name = "sip-helpers"
-version = "0.1.0"
-dependencies = [
- "common",
 ]
 
 [[package]]
@@ -1085,19 +1067,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "store"
-version = "0.1.0"
-dependencies = [
- "common",
- "diesel",
- "models",
- "once_cell",
- "r2d2",
- "serde",
- "tokio",
-]
 
 [[package]]
 name = "strsim"
@@ -1265,15 +1234,12 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "fake",
- "helpers",
  "models",
- "processor",
+ "processor2",
  "r2d2",
  "rsip",
  "serde",
  "server",
- "sip-helpers",
- "store",
  "testing_logger",
  "tokio",
 ]

@@ -1,47 +1,36 @@
 use common::bytes::Bytes;
 use common::futures::stream::{SplitSink, SplitStream};
-use common::futures::SinkExt;
 use common::futures_util::stream::StreamExt;
 use common::tokio_util::codec::BytesCodec;
 use common::tokio_util::udp::UdpFramed;
-use models::{server::UdpTuple, ChannelOf};
 //use processor::Processor;
 use std::net::SocketAddr;
 use tokio::net::UdpSocket;
-use tokio::sync::mpsc::{self, Receiver, Sender};
 
-use processor::{core::CoreLayer, transaction::TransactionLayer, transport::TransportLayer};
+use processor2::{transport::TransportLayer};
 
 type UdpSink = SplitSink<UdpFramed<BytesCodec>, (Bytes, SocketAddr)>;
 type UdpStream = SplitStream<UdpFramed<BytesCodec>>;
 
 #[allow(dead_code)]
 pub struct UdpServer {
+    transport_layer: TransportLayer,
     udp_sink: UdpSink,
     udp_stream: UdpStream,
-    self_to_transport_sink: Sender<UdpTuple>,
-    transport_to_self_sink: Sender<UdpTuple>,
-    transport_to_self_stream: Receiver<UdpTuple>,
 }
 
 // listens to server_stream and forwards to udp_sink
 // listens to udp_stream and forwards to transport_sink
 impl UdpServer {
-    pub async fn new<TR: TransportLayer, C: CoreLayer, TC: TransactionLayer>(
-    ) -> Result<Self, crate::Error> {
-        let (transport_to_self_sink, transport_to_self_stream): ChannelOf<UdpTuple> =
-            mpsc::channel(100);
-
+    pub async fn new() -> Result<Self, crate::Error> {
         let (udp_sink, udp_stream) = create_socket().await?;
 
-        let self_to_transport_sink = TR::spawn::<C, TC>(transport_to_self_sink.clone()).await?;
+        let transport_layer = TransportLayer::new();
 
         Ok(Self {
+            transport_layer,
             udp_sink,
             udp_stream,
-            self_to_transport_sink,
-            transport_to_self_sink,
-            transport_to_self_stream,
         })
     }
 
@@ -49,23 +38,14 @@ impl UdpServer {
         //this can be optimized further by having each arm on its own tokio spawn
         //specifcally the first arm can be spawned since it doesn't depend on self (transport_sink
         //can be cloned)
-        loop {
-            tokio::select! {
-                Some(request) = self.udp_stream.next() => {
-                    match request {
-                        Ok((request, addr)) => {
-                            if self.self_to_transport_sink.send((request.freeze(), addr).into()).await.is_err() {
-                                common::log::error!("failed to send to transport layer");
-                            }
-                        }
-                        Err(e) => common::log::error!("{:?}", e),
-                    }
+        while let Some(request) = self.udp_stream.next().await {
+            match request {
+                Ok((request, addr)) => {
+                    self.transport_layer
+                        .process((request.freeze(), addr).into())
+                        .await
                 }
-                Some(udp_tuple) = self.transport_to_self_stream.next() => {
-                    if self.udp_sink.send(udp_tuple.into()).await.is_err() {
-                        common::log::error!("failed to send to udp socket");
-                    }
-                }
+                Err(e) => common::log::error!("{:?}", e),
             }
         }
     }
