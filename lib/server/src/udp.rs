@@ -6,8 +6,9 @@ use common::tokio_util::udp::UdpFramed;
 //use processor::Processor;
 use std::net::SocketAddr;
 use tokio::net::UdpSocket;
+use models::server::ServerHandle;
 
-use processor2::{transport::TransportLayer};
+use processor2::transport::TransportLayer;
 
 type UdpSink = SplitSink<UdpFramed<BytesCodec>, (Bytes, SocketAddr)>;
 type UdpStream = SplitStream<UdpFramed<BytesCodec>>;
@@ -35,14 +36,14 @@ impl UdpServer {
     }
 
     pub async fn run(&mut self) {
-        //this can be optimized further by having each arm on its own tokio spawn
-        //specifcally the first arm can be spawned since it doesn't depend on self (transport_sink
-        //can be cloned)
         while let Some(request) = self.udp_stream.next().await {
             match request {
                 Ok((request, addr)) => {
                     self.transport_layer
-                        .process((request.freeze(), addr).into())
+                        .process(
+                            self.udp_sink.clone().into(),
+                            (request.freeze(), addr).into(),
+                        )
                         .await
                 }
                 Err(e) => common::log::error!("{:?}", e),
@@ -57,3 +58,4 @@ async fn create_socket() -> Result<(UdpSink, UdpStream), crate::Error> {
     let socket = UdpFramed::new(socket, BytesCodec::new());
     Ok(socket.split())
 }
+

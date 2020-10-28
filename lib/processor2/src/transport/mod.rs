@@ -1,21 +1,15 @@
 use crate::{core::CoreLayer, transaction::TransactionLayer};
-use models::server::UdpTuple;
+use models::server::{UdpTuple, ServerHandle};
 
 pub struct TransportLayer {
-    transaction_layer: crate::transaction::TransactionLayer,
-    core_layer: crate::core::CoreLayer,
-}
+    server_handle: ServerHandle
 
 impl TransportLayer {
     pub fn new() -> Self {
-        let transaction_layer = TransactionLayer::new();
-        Self {
-            core_layer: CoreLayer::new(transaction_layer.clone()),
-            transaction_layer,
-        }
+        Self
     }
 
-    pub async fn process(&self, msg: UdpTuple) {
+    pub async fn process_message(&self, server_handle: ServerHandle, msg: UdpTuple) {
         println!("{:?}", msg);
     }
 }
