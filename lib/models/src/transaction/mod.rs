@@ -1,33 +1,28 @@
-use crate::transport::TransportMsg;
-use rsip::{common::Transport, SipMessage};
-use std::convert::TryFrom;
-use std::net::SocketAddr;
+use crate::{transport::TransportMsg, Error, SipMsg};
+use std::convert::TryInto;
 
 #[derive(Debug)]
-pub struct TransactionMsg {
-    pub sip_message: SipMessage,
-    pub peer: SocketAddr,
-    pub transport: Transport, //pub ttl: u32
+pub enum TransactionMsg {
+    SipMsg(SipMsg),
+    Error(Error),
 }
 
-impl Into<TransportMsg> for TransactionMsg {
-    fn into(self) -> TransportMsg {
-        TransportMsg {
-            sip_message: self.sip_message,
-            peer: self.peer,
-            transport: self.transport,
+impl TryInto<TransportMsg> for TransactionMsg {
+    type Error = crate::Error;
+
+    fn try_into(self) -> Result<TransportMsg, crate::Error> {
+        match self {
+            Self::SipMsg(sip_msg) => Ok(TransportMsg::SipMsg(sip_msg)),
+            Self::Error(error) => Err(error),
         }
     }
 }
 
-impl TryFrom<TransportMsg> for TransactionMsg {
-    type Error = crate::Error;
-
-    fn try_from(transport_msg: TransportMsg) -> Result<Self, Self::Error> {
-        Ok(Self {
-            sip_message: transport_msg.sip_message,
-            peer: transport_msg.peer,
-            transport: transport_msg.transport,
-        })
+impl From<TransportMsg> for TransactionMsg {
+    fn from(transport_msg: TransportMsg) -> Self {
+        match transport_msg {
+            TransportMsg::SipMsg(sip_msg) => Self::SipMsg(sip_msg),
+            TransportMsg::Error(error) => Self::Error(error),
+        }
     }
 }

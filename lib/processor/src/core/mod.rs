@@ -1,9 +1,9 @@
 mod processor;
 
-use crate::transaction::TransactionLayer;
+use crate::{Error, transaction::TransactionLayer};
 use common::async_trait::async_trait;
 use common::futures_util::stream::StreamExt;
-use models::{transaction::TransactionMsg, transport::TransportMsg, ChannelOf};
+use models::{transaction::TransactionMsg, transport::TransportMsg, ChannelOf, SipMsg};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[allow(dead_code)]
@@ -68,32 +68,37 @@ impl Core {
         loop {
             tokio::select! {
                 Some(transport_msg) = transport_to_self_stream.next() => {
-                    common::log::debug!("Received: {}", "something");//transport_msg.sip_message.debug_compact());
-                    self.handle_transport_msg(transport_msg).await;
+                    match transport_msg {
+                        TransportMsg::SipMsg(sip_msg) => self.handle_transport_msg(transport_msg).await,
+                        TransportMsg::Error(error) => common::log::error!("{:?}", error)
+                    }
                 }
                 Some(transaction_msg) = transaction_to_self_stream.next() => {
-                    common::log::debug!("Received: {}", "something");//transaction_msg.sip_message.debug_compact());
-                    self.handle_transaction_msg(transaction_msg).await;
+                    match transaction_msg {
+                        TransactionMsg::SipMsg(sip_msg) => self.handle_transaction_msg(transaction_msg).await,
+                        TransactionMsg::Error(error) => common::log::error!("{:?}", error)
+                    }
                 }
             }
         }
     }
 
-    async fn handle_transport_msg(&mut self, transport_msg: TransportMsg) {
-        let TransportMsg {
+    async fn handle_transport_msg(&mut self, sip_msg: SipMsg) -> Result<(), Error> {
+        let SipMsg {
             sip_message,
             peer,
             transport,
-        } = transport_msg;
+        } = sip_msg;
+
         match self.processor.process_message(sip_message).await {
             Ok(sip_message) => {
                 if self
                     .self_to_transport_sink
-                    .send(TransportMsg {
+                    .send(SipMsg {
                         sip_message,
                         peer,
                         transport,
-                    })
+                    }.into())
                     .await
                     .is_err()
                 {
@@ -104,21 +109,22 @@ impl Core {
         }
     }
 
-    async fn handle_transaction_msg(&mut self, transaction_msg: TransactionMsg) {
-        let TransactionMsg {
+    async fn handle_transaction_msg(&mut self, sip_msg: SipMsg) {
+        let SipMsg {
             sip_message,
             peer,
             transport,
-        } = transaction_msg;
+        } = sip_msg;
+
         match self.processor.process_message(sip_message).await {
             Ok(sip_message) => {
                 if self
                     .self_to_transport_sink
-                    .send(TransportMsg {
+                    .send(SipMsg {
                         sip_message,
                         peer,
                         transport,
-                    })
+                    }.into())
                     .await
                     .is_err()
                 {

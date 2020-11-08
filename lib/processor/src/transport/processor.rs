@@ -1,5 +1,5 @@
 use crate::Error;
-use models::{server::UdpTuple, transport::TransportMsg};
+use models::{server::UdpTuple, transport::TransportMsg, SipMsg};
 use rsip::SipMessage;
 use tokio::sync::mpsc::Sender;
 
@@ -25,19 +25,22 @@ impl Processor {
     }
 
     pub async fn handle_server_message(&self, msg: TransportMsg) {
-        //let mut self_to_transaction_sink = self.self_to_transaction_sink.clone();
         let mut self_to_core_sink = self.self_to_core_sink.clone();
 
-        let message = self.process_incoming_message(msg).await;
+        match transport_msg {
+            TransportMsg::SipMsg(sip_msg) {
+                let message = self.process_incoming_message(msg).await;
 
-        match message {
-            Ok(message) => {
-                if self_to_core_sink.send(message).await.is_err() {
-                    common::log::error!("failed to send");
+                match message {
+                    Ok(message) => {
+                        if self_to_core_sink.send(message).await.is_err() {
+                            common::log::error!("failed to send");
+                        }
+                    }
+                    Err(error) => common::log::error!("failed process incoming message: {:?}", error),
                 }
-            }
-            Err(error) => common::log::error!("failed process incoming message: {:?}", error),
-        }
+            },
+            TransportMsg::Error(error) => common::log::error!("");
     }
 
     pub async fn handle_transaction_message(&self, msg: TransportMsg) {
@@ -64,7 +67,7 @@ impl Processor {
     async fn process_incoming_message(&self, msg: TransportMsg) -> Result<TransportMsg, Error> {
         use super::{uac::apply_response_defaults, uas::apply_request_defaults};
 
-        let TransportMsg {
+        let SipMsg {
             sip_message,
             peer,
             transport,

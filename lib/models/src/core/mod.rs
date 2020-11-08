@@ -1,55 +1,47 @@
-use crate::{transaction::TransactionMsg, transport::TransportMsg};
-use rsip::{common::Transport, SipMessage};
-use std::convert::TryFrom;
-use std::net::SocketAddr;
+use crate::{transaction::TransactionMsg, transport::TransportMsg, Error, SipMsg};
+use std::convert::TryInto;
 
-#[derive(Debug)]
-pub struct CoreMsg {
-    pub sip_message: SipMessage,
-    pub peer: SocketAddr,
-    pub transport: Transport, //pub ttl: u32
+pub enum CoreMsg {
+    SipMsg(SipMsg),
+    Error(Error),
 }
 
-impl Into<TransportMsg> for CoreMsg {
-    fn into(self) -> TransportMsg {
-        TransportMsg {
-            sip_message: self.sip_message,
-            peer: self.peer,
-            transport: self.transport,
+impl TryInto<TransportMsg> for CoreMsg {
+    type Error = crate::Error;
+
+    fn try_into(self) -> Result<TransportMsg, crate::Error> {
+        match self {
+            Self::SipMsg(sip_msg) => Ok(TransportMsg::SipMsg(sip_msg)),
+            Self::Error(error) => Err(error.into()),
         }
     }
 }
 
-impl TryFrom<TransportMsg> for CoreMsg {
-    type Error = crate::Error;
-
-    fn try_from(transport_msg: TransportMsg) -> Result<Self, Self::Error> {
-        Ok(Self {
-            sip_message: transport_msg.sip_message,
-            peer: transport_msg.peer,
-            transport: transport_msg.transport,
-        })
-    }
-}
-
-impl Into<TransactionMsg> for CoreMsg {
-    fn into(self) -> TransactionMsg {
-        TransactionMsg {
-            sip_message: self.sip_message,
-            peer: self.peer,
-            transport: self.transport,
+impl From<TransportMsg> for CoreMsg {
+    fn from(transport_msg: TransportMsg) -> Self {
+        match transport_msg {
+            TransportMsg::SipMsg(sip_msg) => Self::SipMsg(sip_msg),
+            TransportMsg::Error(error) => Self::Error(error),
         }
     }
 }
 
-impl TryFrom<TransactionMsg> for CoreMsg {
+impl TryInto<TransactionMsg> for CoreMsg {
     type Error = crate::Error;
 
-    fn try_from(transaction_msg: TransactionMsg) -> Result<Self, Self::Error> {
-        Ok(Self {
-            sip_message: transaction_msg.sip_message,
-            peer: transaction_msg.peer,
-            transport: transaction_msg.transport,
-        })
+    fn try_into(self) -> Result<TransactionMsg, crate::Error> {
+        match self {
+            Self::SipMsg(sip_msg) => Ok(TransactionMsg::SipMsg(sip_msg)),
+            Self::Error(error) => Err(error.into()),
+        }
+    }
+}
+
+impl From<TransactionMsg> for CoreMsg {
+    fn from(transaction_msg: TransactionMsg) -> Self {
+        match transaction_msg {
+            TransactionMsg::SipMsg(sip_msg) => Self::SipMsg(sip_msg),
+            TransactionMsg::Error(error) => Self::Error(error),
+        }
     }
 }

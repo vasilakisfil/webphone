@@ -15,6 +15,8 @@ pub enum ErrorKind {
     IpAddress(String),
     Rsip(rsip::Error),
     Custom(String),
+    //transaction
+    Timeout
 }
 
 impl Error {

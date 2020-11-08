@@ -1,33 +1,36 @@
-use crate::server::UdpTuple;
+use crate::{server::UdpTuple, Error, SipMsg};
 use rsip::common::Transport;
-use std::convert::{TryFrom, TryInto};
-use std::net::SocketAddr;
+use std::convert::TryInto;
 
-//TODO: we probably need better naming here
-#[derive(Debug, Clone)]
-pub struct TransportMsg {
-    pub sip_message: rsip::SipMessage,
-    pub peer: SocketAddr,
-    pub transport: Transport, //pub ttl: u32
+pub enum TransportMsg {
+    SipMsg(SipMsg),
+    Error(Error),
 }
 
-impl Into<UdpTuple> for TransportMsg {
-    fn into(self) -> UdpTuple {
-        UdpTuple {
-            bytes: self.sip_message.into(),
-            peer: self.peer,
+impl TryInto<UdpTuple> for TransportMsg {
+    type Error = crate::Error;
+
+    fn try_into(self) -> Result<UdpTuple, Error> {
+        match self {
+            Self::SipMsg(sip_msg) => Ok(sip_msg.into()),
+            Self::Error(error) => Err(Error::from(format!(
+                "transport msg to udp tuple failed: {:?}",
+                error,
+            ))),
         }
     }
 }
 
-impl TryFrom<UdpTuple> for TransportMsg {
-    type Error = crate::Error;
-
-    fn try_from(udp_tuple: UdpTuple) -> Result<Self, Self::Error> {
-        Ok(Self {
-            sip_message: udp_tuple.bytes.try_into()?,
-            peer: udp_tuple.peer,
-            transport: Transport::Udp,
-        })
+impl From<UdpTuple> for TransportMsg {
+    fn from(udp_tuple: UdpTuple) -> TransportMsg {
+        let sip_message: Result<rsip::SipMessage, String> = udp_tuple.bytes.try_into();
+        match sip_message {
+            Ok(sip_message) => Self::SipMsg(SipMsg {
+                sip_message: sip_message,
+                peer: udp_tuple.peer,
+                transport: Transport::Udp,
+            }),
+            Err(error) => Self::Error(error.into()),
+        }
     }
 }
