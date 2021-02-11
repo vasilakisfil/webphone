@@ -3,11 +3,13 @@ mod capabilities;
 mod core;
 mod processor;
 mod registrar;
+mod dialogs;
 
 pub use self::core::Core;
 pub use capabilities::Capabilities;
 pub use processor::Processor;
 pub use registrar::Registrar;
+pub use dialogs::Dialogs;
 
 use common::async_trait::async_trait;
 use std::{any::Any, fmt::Debug, sync::Weak};
@@ -41,5 +43,12 @@ pub trait ReqProcessor: Send + Sync + Any + Debug {
     where
         Self: Sized;
     async fn process_incoming_request(&self, msg: RequestMsg) -> Result<(), crate::Error>;
+    fn as_any(&self) -> &dyn Any;
+}
+
+pub trait DialogsProcessor: Send + Sync + Any + Debug {
+    fn new(sip_manager: Weak<SipManager>) -> Self
+    where
+        Self: Sized;
     fn as_any(&self) -> &dyn Any;
 }
