@@ -293,6 +293,4 @@ impl TrxStateMachine {
             )
             .await?)
     }
-
-    //format!("transaction {} errored: {:?}", self.id, error);
 }
