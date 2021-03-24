@@ -1,4 +1,4 @@
-pub use super::{Capabilities, CoreProcessor, Registrar, ReqProcessor, DialogsProcessor};
+pub use super::{Capabilities, CoreProcessor, DialogsProcessor, Registrar, ReqProcessor};
 pub use crate::{presets, Error, SipManager};
 use common::async_trait::async_trait;
 use models::transport::ResponseMsg;
@@ -39,6 +39,14 @@ impl<R: ReqProcessor, C: ReqProcessor, D: DialogsProcessor> CoreProcessor for Pr
             SipMessage::Response(_) => Err(Error::from("we don't support responses yet")),
         }?;
 
+        Ok(())
+    }
+
+    async fn send(&self, req: rsip::Request) -> Result<(), Error> {
+        use rsip::common::Method;
+
+        match req.method {
+            Method::Invite => 
         Ok(())
     }
 

@@ -40,6 +40,7 @@ impl DialogsProcessor for Dialogs {
     }
 }
 
+#[allow(dead_code)]
 impl Inner {
     fn sip_manager(&self) -> Arc<SipManager> {
         self.sip_manager.upgrade().expect("sip manager is missing!")
